@@ -21,3 +21,9 @@ Run program:
     5. Display time. 
     6. Ask to run program again or quit. 
 """
+
+"""
+References: 
+- https://pubs.aip.org/aip/acp/article/2021/1/060023/724202/The-relation-between-the-square-of-the-adjacency # Distance and Adjancensy <Matrices
+"""
+
