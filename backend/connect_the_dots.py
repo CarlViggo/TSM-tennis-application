@@ -159,16 +159,14 @@ def generate_adjacency_matrix(settings, xy_coor):
 def generate_minimum_spanning_tree(settings, distance_matrix):
 
 	visited_balls = set()
-	optim_edges = []
+	mst = []
 
     # start with random ball
 	visited_balls.add(np.random.randint(0, settings.num_balls))
 
 	# number of edges in MST = num_nodes - 1 (basic math formula)
 	for edge in range(settings.num_balls - 1): 
-		
 		min_edge = None
-
 		# initially, all distances will be improvements
 		min_distance = float('inf')
 		# compare distances from current ball to neighbours for each edge
@@ -187,75 +185,117 @@ def generate_minimum_spanning_tree(settings, distance_matrix):
 					# update minimum distance
 					if distance < min_distance:
 						min_distance = distance
-						min_edge = (ball, neighbour)
+						min_edge = (ball, neighbour, min_distance)
 
 		# add the node pair to the list after finding the minimum edge
-		optim_edges.append(min_edge)
+		mst.append(min_edge)
 		
 		# store neighbour ball as visited (not the current ball)
 		visited_balls.add(min_edge[1])
 
-	print(optim_edges)
-	return optim_edges
+	# final mininum spanning tree, a list with edges [(ball1, ball2, distance), ... n-1 times]
+	return mst
 
-settings_dict = {
-		"num_balls": 50,
-		"std": 1.5,
-		"speed": 2,
-		"length": 27,
-		"width": 11, 
-		"padding_length": 2, 
-		"padding_width": 4
-}
-
-settings = Tennis_Court(settings_dict)
-
-xy_cor = generate_court(settings)
-
-distance_mat = generate_adjacency_matrix(settings, xy_cor)
-
-edges = generate_minimum_spanning_tree(settings, distance_mat)
-
-plot_mst(xy_cor, edges, settings)
+import matplotlib.pyplot as plt
 
 
-def minimum_distance(graph, s):
-	nodes = []
+############### THIS FUNCTION IS TAKEN FROM INTERNET ##################
+def plot_mst(points, mst_edges, settings):
+    # Define court dimensions including padding
+    court_length = settings.length + 2 * settings.padding_width
+    court_width = settings.width + 2 * settings.padding_length
+    
+    # Plot the points
+    plt.scatter(points[:, 0], points[:, 1], color='blue', s=100, zorder=2)
+    
+    # Add labels to the points
+    for i, point in enumerate(points):
+        plt.text(point[0], point[1], f'P{i}', fontsize=12, ha='right')
+    
+    # Plot the edges of the MST
+    for edge in mst_edges:
+        i, j, weight = edge
+        p1, p2 = points[i], points[j]
+        plt.plot([p1[0], p2[0]], [p1[1], p2[1]], 'r-', zorder=1)  # Red line for edges
+    
+    # Set axis limits based on court dimensions
+    plt.xlim(0, court_length)
+    plt.ylim(0, court_width)
+    
+    # Title and axis labels
+    plt.title('Minimum Spanning Tree (MST)')
+    plt.xlabel('X coordinate')
+    plt.ylabel('Y coordinate')
+    plt.grid(True)
+    plt.show()
+############### END OF INTERNET ##################
 
-	for i in range(settings.num_balls):
-		if i != s:
-			nodes.append(i)
-	min_path = maxsize
-	next_permutation=permutations(nodes)
-	for i in next_permutation:
-		distance = 0
-		k = s
-		for j in i:
-			distance += graph[k][j]
-			k = j
-		distance += graph[k][s]
-		min_path = min(min_path, distance)
-	return min_path
-
-# returns 2d adjacency matrix
-def generate_adjacency_matrix(settings, xy_coor): 
+# this function provides an exact solution for benchmarking purposes. O(n!) complexity... 
+def old_algorithm(settings, graph):
 	
-	# computes euclidean distance between all points, i.e, in the densely connected graph. 
-	distance_mat = distance_matrix(xy_coor, xy_coor)
+	# tennis-ball to start on (could be random number)
+	start = 0
+	
+	# store all balls except the starting ball 
+	tennis_balls = [ball for ball in range(settings.num_balls) if ball != start]
 
-	return distance_mat
+	# initially, all distances will be improvements
+	min_distance = float('inf')
+
+	# for example: permutations([1, 2, 3]) generates: (1, 2, 3) (1, 3, 2) (2, 1, 3) (2, 3, 1) (3, 1, 2) (3, 2, 1)
+	next_permutation = permutations(tennis_balls)
+	for ball in next_permutation:
+		# this will be updated as algorithm starts
+		distance = 0
+		current_ball = start
+		#iterates through neighbors 
+		for neighbour in ball:
+			# computes distance between current ball and neighbour 
+			distance += graph[current_ball][neighbour]
+			# sets neighbour to current ball
+			current_ball = neighbour
+		
+		#stores the current computed distance 
+		distance += graph[current_ball][start]
+		# updates the minimum distance found 
+		min_distance = min(min_distance, distance)
+
+	# distance 
+	return min_distance
+
+def main():
+	
+	settings_dict = {
+			"num_balls": 5,
+			"std": 1.5,
+			"speed": 2,
+			"length": 27,
+			"width": 11, 
+			"padding_length": 2, 
+			"padding_width": 4
+	}
+
+	settings = Tennis_Court(settings_dict)
+
+	xy_cor = generate_court(settings)
+
+	distance_mat = generate_adjacency_matrix(settings, xy_cor)
+
+	mst = generate_minimum_spanning_tree(settings, distance_mat)
+
+	# obs will crash if num_balls > around 10 
+	old_answer = old_algorithm(settings, distance_mat)
+
+	plot_mst(xy_cor, mst, settings)
+
+if __name__ == "__main__":
+	main()
 
 """
-	if __name__ == "__main__":
-		graph = rounded_matrix
-		s = 0
-		print("The minimum distance is:", round(minimum_distance(graph, s),1), "meters")
-
-	minimal_distance = minimum_distance(graph, s) 
-	print("This would take", round(minimal_distance / speed, 1), "seconds to collect")
-
-	img = plt.imread("tenniscourt blue.jpg")
-	plt.imshow(img, extent=[0, 30, 0, 20])
-	plt.show()
-
+Todo: 
+	- Implement so that each node in mst is traversed twice / so that you get a final time 
+	- Check for graphics options 
+	- Make it so that you can see how it finds the optimal solution iteratively
+	- compare approx to optimal to random (bad user)
+	- User experience (exception handling and so on)
 """
