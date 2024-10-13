@@ -4,6 +4,7 @@ import pandas as pd
 from scipy.spatial import distance_matrix
 from sys import maxsize
 from itertools import permutations
+import time
 
 # define tennis_court class
 class Tennis_Court:
@@ -196,38 +197,80 @@ def generate_minimum_spanning_tree(settings, distance_matrix):
 	# final mininum spanning tree, a list with edges [(ball1, ball2, distance), ... n-1 times]
 	return mst
 
-import matplotlib.pyplot as plt
+# helper function for find_min_distance
+def min_distance_helper(mst, node, visited, path):
+	
+	# ---- This approach is inspired from internet -------- # 
+	for ball1, ball2, weight in mst:
+		if ball1 == node and ball2 not in visited:
+			visited.add(ball2)
+			min_distance_helper(mst, ball2, visited, path)
+			path.append(ball2)  
+		
+		elif ball2 == node and ball1 not in visited:
+			visited.add(ball1)
+			min_distance_helper(mst, ball1, visited, path)
+			path.append(ball1)  
+	
+	return path
 
+# returns minimum distance if 
+def find_min_distance(mst):
+	
+	start = 0
+	visited = {start} 
+	path = [start] 
+
+	return min_distance_helper(mst, start, visited, path)
 
 ############### THIS FUNCTION IS TAKEN FROM INTERNET ##################
-def plot_mst(points, mst_edges, settings):
-    # Define court dimensions including padding
-    court_length = settings.length + 2 * settings.padding_width
-    court_width = settings.width + 2 * settings.padding_length
-    
-    # Plot the points
-    plt.scatter(points[:, 0], points[:, 1], color='blue', s=100, zorder=2)
-    
-    # Add labels to the points
-    for i, point in enumerate(points):
-        plt.text(point[0], point[1], f'P{i}', fontsize=12, ha='right')
-    
-    # Plot the edges of the MST
-    for edge in mst_edges:
-        i, j, weight = edge
-        p1, p2 = points[i], points[j]
-        plt.plot([p1[0], p2[0]], [p1[1], p2[1]], 'r-', zorder=1)  # Red line for edges
-    
-    # Set axis limits based on court dimensions
-    plt.xlim(0, court_length)
-    plt.ylim(0, court_width)
-    
-    # Title and axis labels
-    plt.title('Minimum Spanning Tree (MST)')
-    plt.xlabel('X coordinate')
-    plt.ylabel('Y coordinate')
-    plt.grid(True)
-    plt.show()
+def plot_mst(points, mst_edges, settings, min_path=None):
+	# Define court dimensions including padding
+	court_length = settings.length + 2 * settings.padding_width
+	court_width = settings.width + 2 * settings.padding_length
+
+	# Plot the points
+	plt.scatter(points[:, 0], points[:, 1], color='blue', s=100, zorder=2)
+
+	# Add labels to the points
+	for i, point in enumerate(points):
+		plt.text(point[0], point[1], f'P{i}', fontsize=12, ha='right')
+
+	# Plot the edges of the MST
+	for edge in mst_edges:
+		i, j, weight = edge
+		p1, p2 = points[i], points[j]
+		plt.plot([p1[0], p2[0]], [p1[1], p2[1]], 'r-', zorder=1)  # Red line for edges
+
+	# Set axis limits based on court dimensions
+	plt.xlim(0, court_length)
+	plt.ylim(0, court_width)
+
+	# Title and axis labels
+	plt.title('Minimum Spanning Tree (MST)')
+	plt.xlabel('X coordinate')
+	plt.ylabel('Y coordinate')
+	plt.grid(True)
+
+	# Show the initial plot
+	plt.show(block=False)
+	time.sleep(2)  # Short pause to display the initial MST
+
+	# If min_path is defined, plot it incrementally
+	if min_path:
+		for i in range(len(min_path) - 1):
+			p1 = points[min_path[i]]
+			p2 = points[min_path[i+1]]
+			
+			# Gradually add the lines for the min_path
+			plt.plot([p1[0], p2[0]], [p1[1], p2[1]], 'g-', linewidth=2.5, zorder=3)  # Green line for the path
+			plt.scatter([p1[0], p2[0]], [p1[1], p2[1]], color='green', s=150, zorder=4)  # Highlight the nodes in the path
+			
+			plt.pause(0.5)  # Pause to simulate the seeking effect
+
+	# Keep the plot open after the animation completes
+	plt.show()
+
 ############### END OF INTERNET ##################
 
 # this function provides an exact solution for benchmarking purposes. O(n!) complexity... 
@@ -266,7 +309,7 @@ def old_algorithm(settings, graph):
 def main():
 	
 	settings_dict = {
-			"num_balls": 5,
+			"num_balls": 20,
 			"std": 1.5,
 			"speed": 2,
 			"length": 27,
@@ -278,15 +321,26 @@ def main():
 	settings = Tennis_Court(settings_dict)
 
 	xy_cor = generate_court(settings)
+	print(xy_cor)
 
 	distance_mat = generate_adjacency_matrix(settings, xy_cor)
 
 	mst = generate_minimum_spanning_tree(settings, distance_mat)
 
-	# obs will crash if num_balls > around 10 
-	old_answer = old_algorithm(settings, distance_mat)
+	path = find_min_distance(mst)
+	# Create the shortcut TSP pat
+	print("Final TSP path:", path)
+	# plots mst 
+	plot_mst(xy_cor, mst, settings, path)
 
-	plot_mst(xy_cor, mst, settings)
+	
+	#plot_min_distance(path, xy_cor, mst, settings)
+
+
+	# obs will crash if num_balls > around 10 
+	#old_answer = old_algorithm(settings, distance_mat)
+
+	
 
 if __name__ == "__main__":
 	main()
