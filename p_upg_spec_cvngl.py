@@ -34,6 +34,12 @@ class Edge:
         self.end_node = end_node 
         self.distance = distance       
 
+# ex
+n1 = Node(1)
+n2 = Node(2)
+
+e = Edge(n1, n2, 5)
+
 # get user input
 def retrieve_metrics(): 
 
@@ -62,20 +68,22 @@ def main():
     settings = {
 			"num_balls":,
 			"std":,
-			"speed":,
 			"length":,
-			"width":, 
-			"padding_length":, 
-			"padding_width":
+			"width":
 	}
      
     Court = Tennis_Court(settings)
     """ 
      
+    # get user input
+    def retrieve_metrics(): 
+     
     # generate court 
 	generate_court()
+     
     # create adjacency matrix from court
 	generate_adjacency_matrix()
+
     # generate mst from adjacency matrix
 	generate_minimum_spanning_tree()
     # generate old solution from adjacency matrix 

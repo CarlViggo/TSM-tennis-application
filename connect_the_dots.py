@@ -124,44 +124,48 @@ def generate_minimum_spanning_tree(settings, distance_matrix):
 	return mst
 
 # helper function using DFS to find minimum path 
-# The DFS will first make it pick a random ball, then it will jump furthest out and move itself inward. 
-# this is not optimal (but acceptable for now)... 
-def approximate_optim_path(mst, cur_ball, visited, path):
+# utlizing stacks seems to be the standard way of doing this
+def approximate_optim_path(mst, start_ball):
+	# store balls to explore in list (current_ball, previous_ball)]
+	stack = [(start_ball, None)]  
+	visited = {start_ball}
+	path = [start_ball]
 
-	# mst is a list with edges [(ball1, ball2, distance), ... n-1 times]
-	for ball1, ball2, distance in mst:
-		
-		# check if the current edge connects cur_ball to another unvisited ball
-		if ball1 == cur_ball and ball2 not in visited:
-			visited.add(ball2)
-			# tricky part: explore ball2 using recursion
-			approximate_optim_path(mst, ball2, visited, path)
-			# add ball2 to the path when it's fully explored
-			path.append(ball2)
-		
-		elif ball2 == cur_ball and ball1 not in visited:
-			visited.add(ball1)
-			# tricky part: explore ball1 using recursion
-			approximate_optim_path(mst, ball1, visited, path)
-			# add ball1 to the path when it's fully explored
-			path.append(ball1)
 	
+	# as long as there are items in the stack
+	while len(stack) > 0:
+
+		# cur_ball and prev_ball removed from top
+		cur_ball, prev_ball = stack.pop()
+
+		# explore mst 
+		for ball1, ball2, distance in mst:
+			if ball1 == cur_ball and ball2 not in visited:
+				visited.add(ball2)
+				# now set ball 2 to top (the ball to explore next)
+				stack.append((ball2, cur_ball))  
+				# add ball 2 to the optimal path
+				path.append(ball2)  
+			
+			elif ball2 == cur_ball and ball1 not in visited:
+				visited.add(ball1)
+				# now set ball 1 to top (the ball to explore next)
+				stack.append((ball1, cur_ball))  
+				# add ball 1 to the optimal path
+				path.append(ball1) 
+
 	return path
+
 
 # returns approximation to minimum distance + the its path 
 def find_min_distance(mst, distance_mat):
 	
 	# always start att ball no 0
 	start = 0
-	cur_ball = start
-	visited = {start} 
-	path = [start] 
 
 	# approximate optimal path
-	path = approximate_optim_path(mst = mst, 
-							   cur_ball = cur_ball, 
-							   visited = visited, 
-							   path = path)
+	path = approximate_optim_path(mst = mst,
+							   start_ball = start)
 
 	# compute total distance of the path by using the distance matrix
 	total_distance = 0
@@ -169,17 +173,11 @@ def find_min_distance(mst, distance_mat):
 		cur_ball = path[idx]
 		next_ball = path[idx + 1]
 		total_distance += distance_mat[cur_ball, next_ball]
+
 	return path, total_distance
 
 # plots minimum spanning tree + how the algorithm gradually reaches 
 # an approximation to the optimal path
-
-"""
-OBS! Because of matplotlib complexity and boringness, some of these very 
-specific commands have been taken from internet. These are not main parts of the 
-P-uppgift, just esthetic features! 
-"""
-
 def plot_mst(points, mst_edges, settings, min_path=None):
 	
 	court_length = settings.length + 2 * settings.padding_width
@@ -195,7 +193,8 @@ def plot_mst(points, mst_edges, settings, min_path=None):
 
 	# add label to each ball
 	for i, point in enumerate(points):
-		plt.text(point[0], point[1], f'P{i}', fontsize=12, ha='right')
+		# ha - horizontal alignment
+		plt.text(point[0], point[1], f'P{i}', fontsize=12, ha = 'right')
 
 	# plot distances
 	for edge in mst_edges:
@@ -209,7 +208,6 @@ def plot_mst(points, mst_edges, settings, min_path=None):
 	plt.title('Optimal Path Approximation')
 	plt.xlabel('X coordinate')
 	plt.ylabel('Y coordinate')
-	plt.grid(True)
 
 	# show mst and court
 	plt.grid(False)
@@ -233,7 +231,8 @@ def plot_mst(points, mst_edges, settings, min_path=None):
 			# add a pause 
 			plt.pause(settings.speed) 
 	
-	plt.show()
+	# this is to ensure program runs despite the plot being open
+	plt.show(block=False)
 
 # this function provides an exact solution for benchmarking purposes. O(n!) complexity... 
 # this is taken from a previous project of mine # https://github.com/CarlViggo/Carl-Viggo-Projects/blob/main/Tenniscourt.py 
@@ -282,7 +281,7 @@ def main(settings_dict):
 
 	# gets both the optimal path and its distance 
 	path, approx_min_distance = find_min_distance(mst, distance_mat)
-	
+
 	# plots mst and how the algorithm gradually reaches optimal path
 	plot_mst(xy_cor, mst, settings, path)
 
